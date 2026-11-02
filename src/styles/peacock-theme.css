@@ -1,0 +1,5 @@
+@layer base {
+  .peacock-motif {
+    background-image: radial-gradient(circle at 50% 0%, rgba(8, 127, 140, 0.08) 0%, transparent 60%);
+  }
+}

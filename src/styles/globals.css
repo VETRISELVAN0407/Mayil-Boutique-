@@ -1,0 +1,332 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --peacock-deep: #073F46;
+    --peacock-teal: #087E75;
+    --peacock-blue: #174A8B;
+    --peacock-emerald: #176B50;
+    --peacock-gold: #C6A15B;
+    --ivory: #FBF7EF;
+    --surface: #FFFFFF;
+    --text-primary: #202A2B;
+    --text-secondary: #697575;
+    --border-soft: #E8E0D3;
+    --sale-red: #A43D42;
+    --success-green: #277A53;
+    --header-height: 64px;
+  }
+
+
+  /* Sizes are rem-based, so the root size scales every page: phones 16px, tablets 15px, laptops 14px. */
+  html { font-size: 100%; }
+  @media (min-width: 768px) { html { font-size: 93.75%; } }
+  @media (min-width: 1024px) { html { font-size: 87.5%; } }
+
+  body {
+    @apply bg-ivory text-brand-primary antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Mayil Digits', 'Playfair Display', Georgia, serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-none bg-peacock-deep px-6 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-250 hover:bg-peacock-700 focus:outline-none focus:ring-2 focus:ring-peacock-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-none border-2 border-peacock-deep px-6 py-3 text-sm font-semibold tracking-wide text-peacock-deep transition-all duration-250 hover:bg-peacock-deep hover:text-white focus:outline-none focus:ring-2 focus:ring-peacock-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-none px-4 py-2 text-sm font-medium text-brand-primary transition-all duration-250 hover:text-peacock-teal focus:outline-none;
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-none bg-gold-500 px-6 py-3 text-sm font-semibold tracking-wide text-white transition-all duration-250 hover:bg-gold-600 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 disabled:opacity-50;
+  }
+
+  .input-field {
+    @apply w-full rounded-none border border-brand-border bg-white px-4 py-3 text-sm text-brand-primary placeholder-brand-secondary transition-colors duration-250 focus:border-peacock-teal focus:outline-none focus:ring-1 focus:ring-peacock-teal;
+  }
+
+  .card {
+    @apply bg-surface shadow-card transition-shadow duration-250 hover:shadow-card-hover;
+  }
+
+  .badge-new {
+    @apply inline-block rounded-sm bg-peacock-teal px-2 py-0.5 text-xs font-semibold uppercase tracking-widest text-white;
+  }
+
+  .badge-sale {
+    @apply inline-block rounded-sm bg-sale px-2 py-0.5 text-xs font-semibold uppercase tracking-widest text-white;
+  }
+
+  .section-title {
+    @apply font-serif text-3xl font-semibold text-peacock-deep lg:text-4xl;
+  }
+
+  .section-subtitle {
+    @apply mt-2 text-sm tracking-widest text-brand-secondary uppercase;
+  }
+
+  .divider-gold {
+    @apply my-3 h-0.5 w-12 bg-gold-500;
+  }
+
+  .nav-link {
+    @apply text-sm font-medium text-brand-primary transition-colors duration-250 hover:text-peacock-teal;
+  }
+
+  .product-img-container {
+    @apply relative aspect-[3/4] overflow-hidden bg-gray-100;
+  }
+
+  .product-img {
+    @apply h-full w-full object-cover transition-transform duration-500 group-hover:scale-105;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded bg-gray-200;
+  }
+
+  .page-container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+}
+
+/* Two overlaid range inputs make a dual-handle slider: only the thumbs take pointer events. */
+.range-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.range-thumb::-webkit-slider-runnable-track {
+  background: transparent;
+  -webkit-appearance: none;
+}
+.range-thumb::-moz-range-track {
+  background: transparent;
+}
+.range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 2px solid #8a6d2f;
+  background: #E3BF72;
+  cursor: pointer;
+}
+.range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 2px solid #8a6d2f;
+  background: #E3BF72;
+  cursor: pointer;
+}
+.range-thumb:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #087E75;
+  outline-offset: 2px;
+}
+.range-thumb:focus-visible::-moz-range-thumb {
+  outline: 2px solid #087E75;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  header, footer, nav, .no-print, button, .cart-actions {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .invoice-print {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}
+
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c9c9c9 transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: #c9c9c9;
+  border-radius: 9999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Hide the scrollbar but keep scrolling (sticky filter sidebar). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Wishlist heart: pop, plus a ring and small hearts that fly out. */
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.45) rotate(-8deg); }
+  55% { transform: scale(0.9) rotate(4deg); }
+  80% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes heart-ring {
+  0% { transform: scale(0.4); opacity: 0.7; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes heart-fly {
+  0% { transform: translate(0, 0) scale(0.3); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; }
+}
+.heart-pop { animation: heart-pop 0.6s ease-out; }
+.heart-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid #e8707a;
+  pointer-events: none;
+  animation: heart-ring 0.6s ease-out forwards;
+}
+.heart-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: -6px 0 0 -6px;
+  font-size: 12px;
+  line-height: 12px;
+  color: #e8707a;
+  pointer-events: none;
+  animation: heart-fly 0.7s ease-out forwards;
+}
+
+/* Cream storefront form controls and buttons (checkout, sign-in). */
+@layer components {
+  .input-cream {
+    @apply w-full rounded-md border border-[#d8cdb4] bg-white px-4 py-3 text-sm text-[#10241d] placeholder-brand-secondary transition-colors duration-250 focus:border-[#0f3d2e] focus:outline-none focus:ring-1 focus:ring-[#0f3d2e];
+  }
+  .btn-green {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-[#0f3d2e] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#0a2d22] focus:outline-none focus:ring-2 focus:ring-[#E3BF72] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-green-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border-2 border-[#0f3d2e] bg-white px-5 py-2.5 text-sm font-semibold text-[#0f3d2e] transition-colors hover:bg-[#0f3d2e] hover:text-white disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .card-cream {
+    @apply rounded-2xl bg-[#fdf8ee] shadow-card ring-1 ring-[#E8E0D3];
+  }
+}
+
+/* Responsive type scale (storefront). Mobile -> desktop sizes come from clamp(), so no per-breakpoint overrides. */
+@layer components {
+  .type-hero { font-size: clamp(2rem, 1.45rem + 2.3vw, 3.125rem); line-height: 1.1; }
+  .type-page { font-size: clamp(1.875rem, 1.45rem + 1.7vw, 2.75rem); line-height: 1.15; }
+  .type-section { font-size: clamp(1.375rem, 1.1rem + 1vw, 2rem); line-height: 1.2; }
+  .type-product-name { font-size: clamp(0.9375rem, 0.88rem + 0.3vw, 1.1875rem); line-height: 1.3; }
+  .type-price { font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.375rem); line-height: 1.2; }
+  .type-price-lg { font-size: clamp(1.5rem, 1.25rem + 1vw, 2.125rem); line-height: 1.15; }
+}
+
+/* Long words and prices must never push a layout wider than the screen. */
+html, body { overflow-x: clip; }
+
+/* Playfair Display only ships old-style numerals (prices and counts sit at uneven heights).
+   This tiny Bodoni Moda subset, with the same high-contrast look, supplies lining digits for the serif stack. */
+@font-face {
+  font-family: 'Mayil Digits';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/serif-digits.woff2') format('woff2');
+  unicode-range: U+25, U+2C, U+2E, U+30-39, U+20B9;
+}
+
+/* Admin theme: the same cream / emerald / gold look as the storefront, applied once to everything inside AdminLayout. */
+@layer components {
+  .admin-theme h1,
+  .admin-theme h2 { font-weight: 500; color: #0f3d2e; }
+  .admin-theme h2.font-serif.text-2xl { font-size: clamp(1.5rem, 1.25rem + 0.9vw, 2rem); }
+
+  /* cards */
+  .admin-theme .bg-white.shadow-card {
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 12px rgba(15, 61, 46, 0.07);
+    border: 1px solid #ece3cf;
+  }
+  .admin-theme .bg-white.shadow-card:hover { box-shadow: 0 2px 12px rgba(15, 61, 46, 0.07); }
+
+  /* form controls */
+  .admin-theme .input-field {
+    border-radius: 0.375rem;
+    border-color: #d8cdb4;
+    background-color: #fffdf8;
+  }
+  .admin-theme .input-field:focus { border-color: #0f3d2e; box-shadow: 0 0 0 1px #0f3d2e; }
+
+  /* buttons */
+  .admin-theme .btn-primary,
+  .admin-theme .btn-outline,
+  .admin-theme .btn-gold { border-radius: 0.375rem; }
+  .admin-theme .btn-outline { border-width: 1px; border-color: #0f3d2e; color: #0f3d2e; background: #fff; }
+  .admin-theme .btn-outline:hover { background: #0f3d2e; color: #fff; }
+
+  /* tables */
+  .admin-theme table thead { background: #f6efe0; }
+  .admin-theme table thead th { color: #8a6d2f; }
+  .admin-theme table tbody tr:hover { background: #fdf8ee; }
+  .admin-theme .border-brand-border { border-color: #ece3cf; }
+  .admin-theme .divide-brand-border > :not([hidden]) ~ :not([hidden]) { border-color: #ece3cf; }
+  .admin-theme .bg-ivory { background-color: #f6efe0; }
+}
+
+@layer components {
+  .admin-theme select,
+  .admin-theme input[type='date'] {
+    border-radius: 0.375rem;
+    border: 1px solid #d8cdb4;
+    background-color: #fffdf8;
+    color: #202a2b;
+  }
+  .admin-theme select:focus,
+  .admin-theme input[type='date']:focus { outline: none; border-color: #0f3d2e; box-shadow: 0 0 0 1px #0f3d2e; }
+}

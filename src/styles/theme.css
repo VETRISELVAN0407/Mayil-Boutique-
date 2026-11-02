@@ -1,0 +1,10 @@
+@layer base {
+  :root {
+    --color-peacock: #087f8c;
+    --color-emerald: #075e54;
+    --color-royal: #593a9b;
+    --color-gold: #d5a43b;
+    --color-ivory: #fff9f0;
+    --color-navy: #17243a;
+  }
+}
