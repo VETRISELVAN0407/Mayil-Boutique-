@@ -5,6 +5,7 @@ import ProductCard from '../components/ui/ProductCard';
 import EmptyState from '../components/ui/EmptyState';
 import PriceRangeSlider from '../components/ui/PriceRangeSlider';
 import { ProductGridSkeleton } from '../components/ui/LoadingSkeleton';
+import { colourToCss, isDark } from '../utils/colours';
 
 const SORT_OPTIONS = [
   { value: 'featured', label: 'Featured' },
@@ -47,6 +48,31 @@ function CheckRow({ checked, onChange, label, count }) {
           onChange={onChange}
           className="h-5 w-5 flex-shrink-0 rounded-[4px] border border-[#8a6d2f]/60 accent-[#0f3d2e]"
         />
+        <span className={checked ? 'font-semibold' : ''}>
+          {label}
+          {count != null && <span> ({count})</span>}
+        </span>
+      </label>
+    </li>
+  );
+}
+
+/** Checkbox row whose box is painted in the colour it stands for (falls back to a normal checkbox). */
+function ColourRow({ checked, onChange, label, count }) {
+  const css = colourToCss(label);
+  if (!css) return <CheckRow checked={checked} onChange={onChange} label={label} count={count} />;
+  const tick = isDark(css.startsWith('#') ? css : '') ? 'text-white' : 'text-[#10241d]';
+  return (
+    <li>
+      <label className="flex cursor-pointer items-center gap-3 py-1.5 font-serif text-[0.9375rem] text-[#10241d]">
+        <input type="checkbox" checked={checked} onChange={onChange} className="peer sr-only" />
+        <span
+          aria-hidden="true"
+          style={{ backgroundColor: css }}
+          className={`relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[4px] border border-black/25 transition-shadow peer-checked:ring-2 peer-checked:ring-[#0f3d2e] peer-checked:ring-offset-2 peer-focus-visible:ring-2 peer-focus-visible:ring-[#E3BF72] peer-focus-visible:ring-offset-2 ${checked ? '' : '[&>svg]:hidden'} ${tick}`}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+        </span>
         <span className={checked ? 'font-semibold' : ''}>
           {label}
           {count != null && <span> ({count})</span>}
@@ -389,7 +415,7 @@ export default function ProductsPage() {
                 <FilterGroup title="Colour" icon={<path d="M12 3c5 5 7 8 7 11a7 7 0 0 1-14 0c0-3 2-6 7-11z" />}>
                   <ul>
                     {colourOptions.map((c) => (
-                      <CheckRow
+                      <ColourRow
                         key={c}
                         checked={selectedColours.includes(c)}
                         onChange={() => toggleListParam('colour', selectedColours, c)}
