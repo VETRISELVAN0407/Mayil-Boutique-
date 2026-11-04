@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCategories, useProducts } from '../hooks/useCatalog';
 import ProductCard from '../components/ui/ProductCard';
@@ -113,6 +113,17 @@ export default function ProductsPage() {
   }, [stockAndPriceMatches, params.get('category'), sortBy]);
 
   const filtersActive = selectedSlugs.length > 0 || inStockOnly || priceActive;
+  const activeFilterCount = selectedSlugs.length + (inStockOnly ? 1 : 0) + (priceActive ? 1 : 0);
+
+  // Lock page scroll while the mobile sheet is open.
+  useEffect(() => {
+    if (!filtersOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [filtersOpen]);
 
   function setParam(key, value) {
     const next = new URLSearchParams(params);
@@ -186,13 +197,13 @@ export default function ProductsPage() {
             )}
             <p className="mt-2 font-serif text-base italic text-[#4a4a3f] sm:mt-3 sm:text-lg">Timeless elegance. Curated for you.</p>
           </div>
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="relative">
+          <div className="relative z-10 flex w-full items-center gap-3 sm:w-auto">
+            <div className="relative min-w-0 flex-1 sm:flex-none">
               <select
                 value={sortBy}
                 onChange={(e) => setParam('sort', e.target.value)}
                 aria-label="Sort products"
-                className="w-[14.875rem] cursor-pointer appearance-none rounded-lg border-0 bg-white py-3.5 pl-5 pr-10 font-serif text-[0.9375rem] text-[#10241d] shadow-card focus:outline-none focus:ring-2 focus:ring-[#E3BF72]"
+                className="w-full cursor-pointer sm:w-[14.875rem] appearance-none rounded-lg border-0 bg-white py-3.5 pl-5 pr-10 font-serif text-[0.9375rem] text-[#10241d] shadow-card focus:outline-none focus:ring-2 focus:ring-[#E3BF72]"
               >
                 {SORT_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>Sort by: {o.label}</option>
@@ -200,15 +211,57 @@ export default function ProductsPage() {
               </select>
               <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10241d" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
             </div>
-            <button onClick={() => setFiltersOpen((o) => !o)} className="rounded-lg bg-white px-4 py-3.5 font-serif text-[0.9375rem] shadow-card md:hidden">
+            <button
+              onClick={() => setFiltersOpen(true)}
+              className="flex flex-shrink-0 items-center gap-2 rounded-lg bg-white px-4 py-3.5 font-serif text-[0.9375rem] shadow-card md:hidden"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f3d2e" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
               Filters
+              {activeFilterCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0f3d2e] px-1 text-xs text-white">{activeFilterCount}</span>
+              )}
             </button>
           </div>
         </div>
 
+        {/* Mobile: applied filters as removable chips, so they stay visible with the sheet closed */}
+        {filtersActive && (
+          <div className="no-scrollbar -mt-4 mb-5 flex gap-2 overflow-x-auto md:hidden">
+            {selectedSlugs.map((slug) => (
+              <button key={slug} onClick={() => toggleCategory(slug)} className="flex-shrink-0 rounded-full bg-[#0f3d2e] px-3 py-1.5 text-sm text-white">
+                {categories.find((c) => c.slug === slug)?.name || slug} ✕
+              </button>
+            ))}
+            {inStockOnly && (
+              <button onClick={() => setParam('instock', '')} className="flex-shrink-0 rounded-full bg-[#0f3d2e] px-3 py-1.5 text-sm text-white">In Stock ✕</button>
+            )}
+            {priceActive && (
+              <button onClick={() => setPriceRange(null)} className="flex-shrink-0 rounded-full bg-[#0f3d2e] px-3 py-1.5 text-sm text-white">₹{low}–₹{high} ✕</button>
+            )}
+            <button onClick={clearFilters} className="flex-shrink-0 px-2 py-1.5 text-sm text-brand-sale underline">Clear all</button>
+          </div>
+        )}
+
+        {/* Mobile bottom-sheet backdrop */}
+        {filtersOpen && (
+          <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setFiltersOpen(false)} aria-hidden="true" />
+        )}
+
         <div className="flex items-start gap-8">
-          {/* Sidebar filters */}
-          <aside className={`no-scrollbar w-[18.125rem] flex-shrink-0 md:sticky md:top-[6.75rem] md:max-h-[calc(100vh-124px)] md:overflow-y-auto md:pb-2 ${filtersOpen ? 'block' : 'hidden md:block'}`}>
+          {/* Filters: bottom sheet on mobile, sticky sidebar on md+ */}
+          <aside
+            className={`no-scrollbar flex-shrink-0 md:sticky md:top-[6.75rem] md:z-auto md:block md:max-h-[calc(100vh-124px)] md:w-[18.125rem] md:overflow-y-auto md:rounded-none md:bg-transparent md:p-0 md:pb-2 md:shadow-none ${
+              filtersOpen
+                ? 'fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-[#faf3e6] px-4 pt-4 shadow-2xl'
+                : 'hidden'
+            }`}
+            role={filtersOpen ? 'dialog' : undefined}
+            aria-label="Filters"
+          >
+            <div className="mb-3 flex items-center justify-between md:hidden">
+              <h2 className="font-serif text-2xl text-[#0f3d2e]">Filters</h2>
+              <button onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl shadow-card">✕</button>
+            </div>
             <div className="rounded-2xl bg-[#fdf8ee] p-5 shadow-card ring-1 ring-[#E8E0D3]">
               {filtersActive && (
                 <button onClick={clearFilters} className="mb-3 text-xs text-brand-sale hover:underline">
@@ -259,9 +312,19 @@ export default function ProductsPage() {
               )}
             </div>
 
-            <div className="mt-5 rounded-2xl border border-[#E3BF72]/60 bg-gradient-to-b from-[#fdf8ee] to-[#f6ecd6] px-6 py-6 text-center">
+            <div className="mt-5 hidden rounded-2xl border border-[#E3BF72]/60 bg-gradient-to-b from-[#fdf8ee] to-[#f6ecd6] px-6 py-6 text-center md:block">
               <p className="font-serif text-xl italic text-[#4a3f22]">Elegance in Every Drape</p>
               <p className="mt-1 text-[#8a6d2f]" aria-hidden="true">❖</p>
+            </div>
+
+            {/* Mobile apply bar: filters already apply live, this shows the result count and closes the sheet */}
+            <div className="sticky bottom-0 -mx-4 mt-4 flex gap-3 border-t border-[#E8E0D3] bg-[#faf3e6] px-4 py-3 md:hidden">
+              {filtersActive && (
+                <button onClick={clearFilters} className="rounded-lg border border-[#0f3d2e] px-4 py-3 font-serif text-[#0f3d2e]">Clear</button>
+              )}
+              <button onClick={() => setFiltersOpen(false)} className="flex-1 rounded-lg bg-[#0f3d2e] py-3 font-serif text-white">
+                Show {products.length} {products.length === 1 ? 'piece' : 'pieces'}
+              </button>
             </div>
           </aside>
 
