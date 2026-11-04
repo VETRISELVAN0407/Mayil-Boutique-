@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCategories, useProducts } from '../hooks/useCatalog';
 import ProductCard from '../components/ui/ProductCard';
@@ -59,6 +59,9 @@ function CheckRow({ checked, onChange, label, count }) {
 export default function ProductsPage() {
   const [params, setParams] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const drawerRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  const openBtnRef = useRef(null);
   // null = no price filter (full range of the current products).
   const [priceRange, setPriceRange] = useState(null);
 
@@ -138,13 +141,39 @@ export default function ProductsPage() {
   const filtersActive = selectedSlugs.length > 0 || selectedColours.length > 0 || selectedSizes.length > 0 || inStockOnly || priceActive;
   const activeFilterCount = selectedSlugs.length + selectedColours.length + selectedSizes.length + (inStockOnly ? 1 : 0) + (priceActive ? 1 : 0);
 
-  // Lock page scroll while the mobile sheet is open.
+  // While the drawer is open: lock page scroll, move focus into it, close on Escape and keep Tab inside.
   useEffect(() => {
     if (!filtersOpen) return undefined;
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    const opener = openBtnRef.current;
+    // The drawer is still visibility:hidden on the first frame of the slide-in, so focus a moment later.
+    const focusTimer = setTimeout(() => closeBtnRef.current?.focus(), 60);
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        setFiltersOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab' || !drawerRef.current) return;
+      const focusable = drawerRef.current.querySelectorAll('button, input, select, a[href], [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = prev;
+      clearTimeout(focusTimer);
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      opener?.focus();
     };
   }, [filtersOpen]);
 
@@ -250,8 +279,11 @@ export default function ProductsPage() {
               <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10241d" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
             </div>
             <button
+              ref={openBtnRef}
               onClick={() => setFiltersOpen(true)}
-              className="flex flex-shrink-0 items-center gap-2 rounded-lg bg-white px-4 py-3.5 font-serif text-[0.9375rem] shadow-card md:hidden"
+              aria-haspopup="dialog"
+              aria-expanded={filtersOpen}
+              className="flex flex-shrink-0 items-center gap-2 rounded-lg bg-white px-4 py-3.5 font-serif text-[0.9375rem] shadow-card"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f3d2e" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
               Filters
@@ -262,9 +294,9 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Mobile: applied filters as removable chips, so they stay visible with the sheet closed */}
+        {/* Applied filters as removable chips, so they stay visible with the drawer closed */}
         {filtersActive && (
-          <div className="no-scrollbar -mt-4 mb-5 flex gap-2 overflow-x-auto md:hidden">
+          <div className="no-scrollbar -mt-4 mb-5 flex gap-2 overflow-x-auto">
             {selectedSlugs.map((slug) => (
               <button key={slug} onClick={() => toggleCategory(slug)} className="flex-shrink-0 rounded-full bg-[#0f3d2e] px-3 py-1.5 text-sm text-white">
                 {categories.find((c) => c.slug === slug)?.name || slug} ✕
@@ -286,26 +318,33 @@ export default function ProductsPage() {
           </div>
         )}
 
-        {/* Mobile bottom-sheet backdrop */}
-        {filtersOpen && (
-          <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setFiltersOpen(false)} aria-hidden="true" />
-        )}
+        {/* Backdrop: always mounted so it can fade in and out */}
+        <div
+          className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-[350ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:transition-none ${
+            filtersOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
+          onClick={() => setFiltersOpen(false)}
+          aria-hidden="true"
+        />
 
         <div className="flex items-start gap-8">
-          {/* Filters: bottom sheet on mobile, sticky sidebar on md+ */}
+          {/* Filters: drawer that slides in from the right. Always mounted (hidden via visibility after the
+              slide-out finishes) so the closing animation can play and closed controls are not focusable. */}
           <aside
-            className={`no-scrollbar flex-shrink-0 md:sticky md:top-[6.75rem] md:z-auto md:block md:max-h-[calc(100vh-124px)] md:w-[18.125rem] md:overflow-y-auto md:rounded-none md:bg-transparent md:p-0 md:pb-2 md:shadow-none ${
-              filtersOpen
-                ? 'fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-[#faf3e6] px-4 pt-4 shadow-2xl'
-                : 'hidden'
+            ref={drawerRef}
+            className={`fixed inset-y-0 right-0 z-50 flex w-[88%] max-w-[24rem] flex-col bg-[#faf3e6] shadow-2xl transition-[transform,visibility] duration-[350ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:transition-none ${
+              filtersOpen ? 'visible translate-x-0' : 'invisible translate-x-full'
             }`}
-            role={filtersOpen ? 'dialog' : undefined}
+            role="dialog"
+            aria-modal="true"
             aria-label="Filters"
+            aria-hidden={!filtersOpen}
           >
-            <div className="mb-3 flex items-center justify-between md:hidden">
+            <div className="flex flex-shrink-0 items-center justify-between px-5 pb-3 pt-5">
               <h2 className="font-serif text-2xl text-[#0f3d2e]">Filters</h2>
-              <button onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl shadow-card">✕</button>
+              <button ref={closeBtnRef} onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl shadow-card">✕</button>
             </div>
+            <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-4">
             <div className="rounded-2xl bg-[#fdf8ee] p-5 shadow-card ring-1 ring-[#E8E0D3]">
               {filtersActive && (
                 <button onClick={clearFilters} className="mb-3 text-xs text-brand-sale hover:underline">
@@ -388,13 +427,15 @@ export default function ProductsPage() {
               )}
             </div>
 
-            <div className="mt-5 hidden rounded-2xl border border-[#E3BF72]/60 bg-gradient-to-b from-[#fdf8ee] to-[#f6ecd6] px-6 py-6 text-center md:block">
+            <div className="mt-5 rounded-2xl border border-[#E3BF72]/60 bg-gradient-to-b from-[#fdf8ee] to-[#f6ecd6] px-6 py-6 text-center">
               <p className="font-serif text-xl italic text-[#4a3f22]">Elegance in Every Drape</p>
               <p className="mt-1 text-[#8a6d2f]" aria-hidden="true">❖</p>
             </div>
 
-            {/* Mobile apply bar: filters already apply live, this shows the result count and closes the sheet */}
-            <div className="sticky bottom-0 -mx-4 mt-4 flex gap-3 border-t border-[#E8E0D3] bg-[#faf3e6] px-4 py-3 md:hidden">
+            </div>
+
+            {/* Apply bar: filters already apply live, this shows the result count and closes the drawer */}
+            <div className="flex flex-shrink-0 gap-3 border-t border-[#E8E0D3] bg-[#faf3e6] px-5 py-3">
               {filtersActive && (
                 <button onClick={clearFilters} className="rounded-lg border border-[#0f3d2e] px-4 py-3 font-serif text-[#0f3d2e]">Clear</button>
               )}
