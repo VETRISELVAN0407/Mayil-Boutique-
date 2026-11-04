@@ -67,6 +67,20 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// When no backend answers at VITE_API_URL (e.g. a static host that rewrites every path to
+// index.html), the "API" reply is an HTML page with status 200. Treat that as a failed request
+// instead of handing a string to code that expects JSON.
+apiClient.interceptors.response.use((response) => {
+  const type = String(response.headers?.['content-type'] ?? '');
+  if (type.includes('text/html') && response.config?.responseType !== 'blob') {
+    const error = new Error('The Mayil Boutique server is not reachable right now.');
+    error.config = response.config;
+    error.isApiUnavailable = true;
+    return Promise.reject(error);
+  }
+  return response;
+});
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
