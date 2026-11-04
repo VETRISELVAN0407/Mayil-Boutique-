@@ -64,6 +64,8 @@ export default function ProductsPage() {
 
   // `category` holds one or more category slugs, comma separated.
   const selectedSlugs = (params.get('category') || '').split(',').filter(Boolean);
+  const selectedColours = (params.get('colour') || '').split(',').filter(Boolean);
+  const selectedSizes = (params.get('size') || '').split(',').filter(Boolean);
   const inStockOnly = params.get('instock') === '1';
   const search = params.get('search') || '';
   const sortBy = params.get('sort') || 'featured';
@@ -95,25 +97,46 @@ export default function ProductsPage() {
     [fetched, inStockOnly, low, high],
   );
 
+  // Each facet's counts ignore its own selection but respect the others, so the numbers stay meaningful.
+  const matchesColour = (p) => selectedColours.length === 0 || (p.colours ?? []).some((c) => selectedColours.includes(c));
+  const matchesSize = (p) => selectedSizes.length === 0 || (p.sizes ?? []).some((z) => selectedSizes.includes(z));
+  const matchesCategory = (p) => selectedSlugs.length === 0 || selectedSlugs.includes(p.categorySlug);
+
   const categoryCounts = useMemo(() => {
     const counts = {};
-    stockAndPriceMatches.forEach((p) => {
+    stockAndPriceMatches.filter((p) => matchesColour(p) && matchesSize(p)).forEach((p) => {
       counts[p.categorySlug] = (counts[p.categorySlug] || 0) + 1;
     });
     return counts;
-  }, [stockAndPriceMatches]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stockAndPriceMatches, params.get('colour'), params.get('size')]);
+
+  const colourCounts = useMemo(() => {
+    const counts = {};
+    stockAndPriceMatches.filter((p) => matchesCategory(p) && matchesSize(p)).forEach((p) => {
+      (p.colours ?? []).forEach((c) => { counts[c] = (counts[c] || 0) + 1; });
+    });
+    return counts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stockAndPriceMatches, params.get('category'), params.get('size')]);
+
+  const sizeCounts = useMemo(() => {
+    const counts = {};
+    stockAndPriceMatches.filter((p) => matchesCategory(p) && matchesColour(p)).forEach((p) => {
+      (p.sizes ?? []).forEach((z) => { counts[z] = (counts[z] || 0) + 1; });
+    });
+    return counts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stockAndPriceMatches, params.get('category'), params.get('colour')]);
 
   const products = useMemo(() => {
-    const matches =
-      selectedSlugs.length > 0
-        ? stockAndPriceMatches.filter((p) => selectedSlugs.includes(p.categorySlug))
-        : stockAndPriceMatches;
+    const matches = stockAndPriceMatches.filter((p) => matchesCategory(p) && matchesColour(p) && matchesSize(p));
     return sortProducts(matches, sortBy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stockAndPriceMatches, params.get('category'), sortBy]);
+  }, [stockAndPriceMatches, params.get('category'), params.get('colour'), params.get('size'), sortBy]);
 
-  const filtersActive = selectedSlugs.length > 0 || inStockOnly || priceActive;
-  const activeFilterCount = selectedSlugs.length + (inStockOnly ? 1 : 0) + (priceActive ? 1 : 0);
+  const filtersActive = selectedSlugs.length > 0 || selectedColours.length > 0 || selectedSizes.length > 0 || inStockOnly || priceActive;
+  const activeFilterCount = selectedSlugs.length + selectedColours.length + selectedSizes.length + (inStockOnly ? 1 : 0) + (priceActive ? 1 : 0);
 
   // Lock page scroll while the mobile sheet is open.
   useEffect(() => {
@@ -137,13 +160,28 @@ export default function ProductsPage() {
     setParam('category', next.join(','));
   }
 
+  function toggleListParam(key, list, value) {
+    const next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+    setParam(key, next.join(','));
+  }
+
   function clearFilters() {
     const next = new URLSearchParams(params);
     next.delete('category');
+    next.delete('colour');
+    next.delete('size');
     next.delete('instock');
     setParams(next);
     setPriceRange(null);
   }
+
+  // Options come from the loaded products; a selected option stays listed even when its count drops to 0.
+  const colourOptions = [...new Set([...fetched.flatMap((p) => p.colours ?? []), ...selectedColours])].sort((a, b) => a.localeCompare(b));
+  const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', 'FREE SIZE', 'FREE'];
+  const sizeRank = (z) => { const i = SIZE_ORDER.indexOf(z.toUpperCase()); return i === -1 ? SIZE_ORDER.length : i; };
+  const sizeOptions = [...new Set([...fetched.flatMap((p) => p.sizes ?? []), ...selectedSizes])].sort(
+    (a, b) => sizeRank(a) - sizeRank(b) || a.localeCompare(b, undefined, { numeric: true }),
+  );
 
   const visibleCategories = categories.filter((c) => categoryCounts[c.slug] > 0 || selectedSlugs.includes(c.slug));
 
@@ -232,6 +270,12 @@ export default function ProductsPage() {
                 {categories.find((c) => c.slug === slug)?.name || slug} ✕
               </button>
             ))}
+            {selectedColours.map((c) => (
+              <button key={`c-${c}`} onClick={() => toggleListParam('colour', selectedColours, c)} className="flex-shrink-0 rounded-full bg-[#0f3d2e] px-3 py-1.5 text-sm text-white">{c} ✕</button>
+            ))}
+            {selectedSizes.map((z) => (
+              <button key={`s-${z}`} onClick={() => toggleListParam('size', selectedSizes, z)} className="flex-shrink-0 rounded-full bg-[#0f3d2e] px-3 py-1.5 text-sm text-white">Size {z} ✕</button>
+            ))}
             {inStockOnly && (
               <button onClick={() => setParam('instock', '')} className="flex-shrink-0 rounded-full bg-[#0f3d2e] px-3 py-1.5 text-sm text-white">In Stock ✕</button>
             )}
@@ -296,6 +340,38 @@ export default function ProductsPage() {
                         onChange={() => toggleCategory(c.slug)}
                         label={c.name}
                         count={categoryCounts[c.slug] || 0}
+                      />
+                    ))}
+                  </ul>
+                </FilterGroup>
+              )}
+
+              {colourOptions.length > 0 && (
+                <FilterGroup title="Colour" icon={<path d="M12 3c5 5 7 8 7 11a7 7 0 0 1-14 0c0-3 2-6 7-11z" />}>
+                  <ul>
+                    {colourOptions.map((c) => (
+                      <CheckRow
+                        key={c}
+                        checked={selectedColours.includes(c)}
+                        onChange={() => toggleListParam('colour', selectedColours, c)}
+                        label={c}
+                        count={colourCounts[c] || 0}
+                      />
+                    ))}
+                  </ul>
+                </FilterGroup>
+              )}
+
+              {sizeOptions.length > 0 && (
+                <FilterGroup title="Size" icon={<path d="M4 8h16v8H4zM8 8v3M12 8v4M16 8v3" />}>
+                  <ul>
+                    {sizeOptions.map((z) => (
+                      <CheckRow
+                        key={z}
+                        checked={selectedSizes.includes(z)}
+                        onChange={() => toggleListParam('size', selectedSizes, z)}
+                        label={z}
+                        count={sizeCounts[z] || 0}
                       />
                     ))}
                   </ul>
