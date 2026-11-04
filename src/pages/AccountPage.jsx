@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import * as orderService from '../services/orderService';
 import PageShell, { EmptyPanel } from '../components/ui/PageShell';
 import ProductImage from '../components/ui/ProductImage';
+import OrderTimeline from '../components/ui/OrderTimeline';
 import { errorMessage, productImageUrl } from '../utils/catalog';
 import { formatCurrency, formatDate, formatOrderStatus, formatPaymentMethod } from '../utils/format';
 
@@ -53,6 +54,20 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (isLoggedIn) loadOrders();
+  }, [isLoggedIn, loadOrders]);
+
+  // Pick up status changes made by the shop (confirmed, packed, shipped...) without a page reload.
+  useEffect(() => {
+    if (!isLoggedIn) return undefined;
+    const refresh = () => {
+      if (document.visibilityState === 'visible') loadOrders();
+    };
+    const timer = setInterval(refresh, 30000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [isLoggedIn, loadOrders]);
 
   async function handleCancel(orderRef) {
@@ -177,6 +192,8 @@ export default function AccountPage() {
                       <span className="font-serif text-xl font-bold text-[#0f3d2e]">{formatCurrency(order.total)}</span>
                     </div>
                   </div>
+
+                  <OrderTimeline order={order} />
 
                   <ul className="space-y-1 text-sm">
                     {order.items.map((item, i) => (
