@@ -13,6 +13,7 @@ import { discountPercent } from '../utils/pricing';
 import { flyToBag } from '../utils/flyToBag';
 import ProductImage from '../components/ui/ProductImage';
 import EmptyState from '../components/ui/EmptyState';
+import ProductReviews from '../components/reviews/ProductReviews';
 
 const DELIVERY_MIN_DAYS = 3;
 const DELIVERY_MAX_DAYS = 5;
@@ -217,6 +218,21 @@ export default function ProductDetailPage() {
     }
   }
 
+  async function handleShare() {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.name, text: `${product.name} · Mayil Boutique`, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copied!');
+    } catch (error) {
+      if (error?.name === 'AbortError') return; // the customer closed the share sheet
+      toast.error('Could not share. Please copy the link from the address bar.');
+    }
+  }
+
   const maxQty = selectedVariant ? Math.max(1, Math.min(selectedVariant.stockQuantity, 10)) : 10;
   const soldOut = variants.length === 0 || totalStock === 0;
   const onSale = product.originalPrice && product.originalPrice > product.price;
@@ -238,58 +254,70 @@ export default function ProductDetailPage() {
       />
 
       <div className="relative mx-auto max-w-[78.3125rem] px-4 pb-16 pt-8 sm:px-6 xl:px-0">
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[36.75rem_1fr] lg:gap-12">
-          {/* Image gallery */}
-          <div>
-            <div ref={mainImageRef} className="relative aspect-[588/676] overflow-hidden rounded-sm bg-[#f3ede2] shadow-card">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[41rem_1fr] lg:gap-12">
+          {/* Image gallery: thumbnails on the left, the picture with wishlist/share buttons on its right edge */}
+          <div className="flex gap-3 sm:gap-4">
+            {images.length > 1 && (
+              <div className="relative w-14 flex-shrink-0 sm:w-[5.5625rem]">
+                <div className="no-scrollbar absolute inset-0 flex flex-col gap-3 overflow-y-auto" aria-label="Product images">
+                  {images.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImg(i)}
+                      aria-label={`Show image ${i + 1}`}
+                      aria-current={i === activeImg}
+                      className={`aspect-[89/100] w-full flex-shrink-0 overflow-hidden rounded-sm border-2 transition-colors ${i === activeImg ? 'border-[#E3A52B]' : 'border-transparent'}`}
+                    >
+                      <img src={img} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div ref={mainImageRef} className="relative aspect-[588/676] min-w-0 flex-1 overflow-hidden rounded-sm bg-[#f3ede2] shadow-card">
               <ProductImage src={images[activeImg]} alt={product.name} className="h-full w-full object-cover" />
               {soldOut && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                   <span className="bg-white px-4 py-2 text-sm font-semibold">Out of Stock</span>
                 </div>
               )}
+              <div className="absolute right-3 top-3 flex flex-col gap-3 sm:right-4 sm:top-4">
+                <button
+                  onClick={handleWishlist}
+                  aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                  aria-pressed={inWishlist}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/95 shadow transition-transform hover:scale-105"
+                >
+                  <svg key={wishlistPulse} className={wishlistPulse > 0 ? 'heart-pop' : ''} width="24" height="24" viewBox="0 0 24 24" fill={inWishlist ? '#c1272d' : 'none'} stroke={inWishlist ? '#c1272d' : '#10241d'} strokeWidth="1.8" strokeLinejoin="round"><path d="M12 20s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 5.8-8 11-8 11z" /></svg>
+                </button>
+                <button
+                  onClick={handleShare}
+                  aria-label="Share this product"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/95 shadow transition-transform hover:scale-105"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10241d" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><path d="M21 3 3 10.5l7 3 3 7z" /><path d="m10 13.5 4-4" /></svg>
+                </button>
+              </div>
               {images.length > 0 && (
                 <button
                   onClick={() => setZoomOpen(true)}
                   aria-label="Zoom image"
-                  className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#10241d] shadow"
+                  className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#10241d] shadow sm:bottom-4 sm:right-4"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M11 8v6M8 11h6" /></svg>
                 </button>
               )}
               {images.length > 1 && (
                 <>
-                  <button onClick={() => step(-1)} aria-label="Previous image" className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#10241d] shadow">
+                  <button onClick={() => step(-1)} aria-label="Previous image" className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#10241d] shadow sm:left-4">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m15 6-6 6 6 6" /></svg>
                   </button>
-                  <button onClick={() => step(1)} aria-label="Next image" className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#10241d] shadow">
+                  <button onClick={() => step(1)} aria-label="Next image" className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#10241d] shadow sm:right-4">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m9 6 6 6-6 6" /></svg>
                   </button>
                 </>
               )}
             </div>
-            {images.length > 1 && (
-              <div className="mt-4 flex items-center justify-center gap-4">
-                <button onClick={() => step(-1)} aria-label="Previous image" className="p-2 text-[#10241d]">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 6-6 6 6 6" /></svg>
-                </button>
-                <div className="flex gap-4 overflow-x-auto">
-                  {images.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveImg(i)}
-                      aria-label={`Show image ${i + 1}`}
-                      className={`h-[6.25rem] w-[5.5625rem] flex-shrink-0 overflow-hidden rounded-sm border-2 transition-colors ${i === activeImg ? 'border-[#E3A52B]' : 'border-transparent'}`}
-                    >
-                      <img src={img} alt="" className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-                <button onClick={() => step(1)} aria-label="Next image" className="p-2 text-[#10241d]">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 6 6 6-6 6" /></svg>
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Product info */}
@@ -410,11 +438,11 @@ export default function ProductDetailPage() {
             {selectedVariant && inCart > 0 && <p className="mt-2 text-xs text-brand-secondary">{inCart} already in your bag.</p>}
 
             {/* CTA buttons */}
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
               <button
                 onClick={handleAddToCart}
                 disabled={soldOut || busy}
-                className={`relative flex h-[3.25rem] items-center justify-center gap-3 overflow-hidden rounded-md text-lg font-semibold transition-colors disabled:opacity-60 ${
+                className={`relative flex h-[3.25rem] items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-md px-2 text-[0.9375rem] font-semibold transition-colors disabled:opacity-60 sm:gap-3 sm:text-lg ${
                   justAdded ? 'bg-[#128a3e] text-white' : 'bg-[#0f3d2e] text-white hover:bg-[#0a2d22]'
                 }`}
               >
@@ -435,7 +463,7 @@ export default function ProductDetailPage() {
               </button>
               <button
                 onClick={handleWishlist}
-                className="flex h-[3.25rem] items-center justify-center gap-3 rounded-md border-2 border-[#0f3d2e] bg-white text-lg font-semibold text-[#0f3d2e] transition-colors hover:bg-[#fdf8ee]"
+                className="flex h-[3.25rem] items-center justify-center gap-2 whitespace-nowrap rounded-md border-2 border-[#0f3d2e] bg-white px-2 text-[0.9375rem] font-semibold text-[#0f3d2e] transition-colors hover:bg-[#fdf8ee] sm:gap-3 sm:text-lg"
               >
                 <svg key={wishlistPulse} className={wishlistPulse > 0 ? 'heart-pop' : ''} width="24" height="24" viewBox="0 0 24 24" fill={inWishlist ? '#c1272d' : 'none'} stroke={inWishlist ? '#c1272d' : 'currentColor'} strokeWidth="1.8" strokeLinejoin="round"><path d="M12 20s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 5.8-8 11-8 11z" /></svg>
                 {inWishlist ? 'In Wishlist' : 'Add to Wishlist'}
@@ -486,6 +514,8 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
+
+        <ProductReviews product={product} />
       </div>
 
       {zoomOpen && images[activeImg] && (
